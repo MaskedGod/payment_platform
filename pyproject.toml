@@ -1,0 +1,5 @@
+[project]
+name = "payment-platform"
+version = "0.0.1"
+description = "Платформа для интеграции с партнерами и проведения платежей через API."
+readme = "README.md"
