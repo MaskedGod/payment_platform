@@ -4,7 +4,10 @@ from sqlalchemy.sql import text
 from app.db.database import get_db
 
 
-app = FastAPI()
+app = FastAPI(
+    title="Payment platform",
+    summary="Платформа для интеграции с партнерами и проведения платежей через API.",
+)
 
 
 @app.get("/")
