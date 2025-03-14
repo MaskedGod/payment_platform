@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends
 
 
 from app.services.payment import PaymentService
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.db.database import get_db
+
 
 router = APIRouter()
 
@@ -13,7 +12,6 @@ async def create_payment(
     user_id: int,
     payment_data: dict,
     payment_service: PaymentService = Depends(PaymentService),
-    db: AsyncSession = Depends(get_db),
 ):
     """
     Endpoint to create a new payment (DEPOSIT).
@@ -27,7 +25,6 @@ async def create_payout(
     user_id: int,
     payout_data: dict,
     payment_service: PaymentService = Depends(PaymentService),
-    db: AsyncSession = Depends(get_db),
 ):
     """
     Endpoint to create a new payout (WITHDRAWAL).
@@ -41,7 +38,6 @@ async def create_refund(
     user_id: int,
     refund_data: dict,
     payment_service: PaymentService = Depends(PaymentService),
-    db: AsyncSession = Depends(get_db),
 ):
     """
     Endpoint to create a new refund (REFUND).
