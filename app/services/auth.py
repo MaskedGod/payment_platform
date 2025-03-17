@@ -40,14 +40,12 @@ class AuthService:
             )
 
         hashed_password = self._hash_password(password)
-        internal_token = self._generate_jwt(email)
 
-        new_user = User(
-            email=email, hashed_password=hashed_password, internal_token=internal_token
-        )
+        new_user = User(email=email, hashed_password=hashed_password)
         self.db.add(new_user)
         await self.db.commit()
         await self.db.refresh(new_user)
+
         return {
             "message": "Пользователь успешно зарегистрирован",
             "user_id": new_user.id,
@@ -67,7 +65,8 @@ class AuthService:
         if not user or not self._verify_password(password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Неверные учетные данные")
 
-        return {"access_token": user.internal_token, "token_type": "bearer"}
+        token = self._generate_jwt(user.email)
+        return {"access_token": token, "token_type": "bearer"}
 
     def _hash_password(self, password: str) -> str:
         """Хэширует пароль."""
@@ -78,7 +77,7 @@ class AuthService:
         return pwd_context.verify(plain_password, hashed_password)
 
     def _generate_jwt(self, email: str) -> str:
-        """Генерирует JWT токен."""
+        """Генерирует JWT-токен."""
         payload = {
             "sub": email,
             "exp": datetime.now(timezone.utc)
