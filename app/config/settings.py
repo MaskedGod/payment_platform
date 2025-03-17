@@ -2,7 +2,6 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    PAYADMIT_AUTH_URL: str
     PAYADMIT_API_URL: str
     API_KEY: str
     SIGN_KEY: str
