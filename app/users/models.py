@@ -9,11 +9,10 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    email: Mapped[str] = mapped_column(String, unique=True)
-    username: Mapped[str] = mapped_column(String, nullable=False)
+    email: Mapped[str] = mapped_column(String(60), unique=True)
     hashed_password: Mapped[str] = mapped_column(String)
-    created_at: Mapped[datetime.datetime] = mapped_column(
-        DateTime, default=datetime.now(timezone.utc)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
