@@ -9,38 +9,29 @@ router = APIRouter()
 
 @router.post("/create-payment")
 async def create_payment(
-    user_id: int,
-    payment_data: dict,
-    payment_service: PaymentService = Depends(PaymentService),
+    user_id: int, payment_data: dict, payment_service: PaymentService = Depends()
 ):
     """
-    Endpoint to create a new payment (DEPOSIT).
+    Создает новый депозит.
     """
-    payment = await payment_service.create_payment(user_id, payment_data)
-    return {"message": "Payment created successfully", "payment": payment}
+    return await payment_service.create_payment(user_id, payment_data)
 
 
 @router.post("/create-payout")
 async def create_payout(
-    user_id: int,
-    payout_data: dict,
-    payment_service: PaymentService = Depends(PaymentService),
+    user_id: int, payout_data: dict, payment_service: PaymentService = Depends()
 ):
     """
-    Endpoint to create a new payout (WITHDRAWAL).
+    Создает новую выплату.
     """
-    payout = await payment_service.create_payout(user_id, payout_data)
-    return {"message": "Payout created successfully", "payout": payout}
+    return await payment_service.create_payout(user_id, payout_data)
 
 
 @router.post("/create-refund")
 async def create_refund(
-    user_id: int,
-    refund_data: dict,
-    payment_service: PaymentService = Depends(PaymentService),
+    user_id: int, refund_data: dict, payment_service: PaymentService = Depends()
 ):
     """
-    Endpoint to create a new refund (REFUND).
+    Создает новый возврат средств.
     """
-    refund = await payment_service.create_refund(user_id, refund_data)
-    return {"message": "Refund created successfully", "refund": refund}
+    return await payment_service.create_refund(user_id, refund_data)

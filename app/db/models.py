@@ -30,30 +30,25 @@ class PaymentState(PyEnum):
 
 
 class User(Base):
-    """Represents a user in the system."""
+    """Представляет пользователя в системе."""
 
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
-    partner_token: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # Token from PayAdmit
-    internal_token: Mapped[str] = mapped_column(
-        String, nullable=False
-    )  # Internal JWT token
+    internal_token: Mapped[str] = mapped_column(String, nullable=False)
 
     payments: Mapped[List["Payment"]] = relationship("Payment", back_populates="user")
 
 
 class Payment(Base):
-    """Represents a payment transaction."""
+    """Представляет платежную транзакцию."""
 
     __tablename__ = "payments"
 
     id: Mapped[str] = mapped_column(
         String, primary_key=True, index=True
-    )  # External payment ID from PayAdmit
+    )  # ID платежа от PayAdmit
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     reference_id: Mapped[str] = mapped_column(String, nullable=False)
     payment_type: Mapped[PaymentType] = mapped_column(Enum(PaymentType), nullable=False)
@@ -61,5 +56,6 @@ class Payment(Base):
     amount: Mapped[float] = mapped_column(Float, nullable=False)
     currency: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
+    updated_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
 
     user: Mapped["User"] = relationship("User", back_populates="payments")
