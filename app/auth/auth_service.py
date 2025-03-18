@@ -30,16 +30,21 @@ class AuthService:
         """Создаёт и возвращает JWT-токен."""
         return self.jwt_manager.create_token(user_id)
 
-    async def get_current_user(self, token: str = Depends(oauth2_scheme)) -> UserOut:
+    @staticmethod
+    async def get_current_user(
+        token: str = Depends(oauth2_scheme),
+        session: AsyncSession = Depends(get_db),
+    ) -> UserOut:
         """Получает текущего пользователя из JWT-токена."""
+        jwt_manager = JWTManager()
         try:
-            payload = self.jwt_manager.decode_token(token)
+            payload = jwt_manager.decode_token(token)
             user_id = payload.get("sub")
             if not user_id:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED, detail="Неверный токен"
                 )
-            user_service = UserService(self.session)
+            user_service = UserService(session)
             user = await user_service.get_user_by_id(int(user_id))
             if not user:
                 raise HTTPException(
