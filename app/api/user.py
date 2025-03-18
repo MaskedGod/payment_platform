@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 
+from app.auth.auth_service import AuthService
 from app.users.schemas import UserCreate, UserOut
 from app.users.user_service import UserService
 
@@ -14,12 +15,11 @@ async def create_user(
     return await service.create_user(user_data)
 
 
-@router.get("/{user_id}", response_model=UserOut)
-async def get_user_by_id(user_id: int, service: UserService = Depends()) -> UserOut:
-    """Получить пользователя по его ID."""
-    user: UserOut | None = await service.get_user_by_id(user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден"
-        )
-    return user
+@router.delete("/me", status_code=status.HTTP_200_OK)
+async def delete_user(
+    service: UserService = Depends(),
+    current_user: UserOut = Depends(AuthService.get_current_user),
+):
+    """Удалить текущего пользователя."""
+    await service.delete_user(current_user.id)
+    return {"message": "Пользователь успешно удален"}
