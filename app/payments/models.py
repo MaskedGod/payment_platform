@@ -18,4 +18,4 @@ class Payment(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
-    user = relationship("User", back_populates="payments")
+    user: Mapped["User"] = relationship("User", back_populates="payments")

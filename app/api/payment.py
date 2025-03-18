@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from app.payadmit_integration.payadmit_service import PayAdmitService
+from app.payments.payments_service import PayAdmitService
 
 router = APIRouter()
 
