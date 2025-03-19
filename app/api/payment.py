@@ -1,6 +1,12 @@
 from fastapi import APIRouter, HTTPException, Depends
+
 from app.auth.auth_service import AuthService
 from app.payments.payments_service import PayAdmitService
+from app.payments.schemas import (
+    CreatePaymentRequest,
+    CreateRefundRequest,
+    PaymentConfirmationType,
+)
 from app.users.models import User
 
 router = APIRouter()
@@ -8,26 +14,35 @@ router = APIRouter()
 
 @router.get("/payments")
 async def get_payments(
+    limit: int = 10,
+    offset: int = 0,
     user: User = Depends(AuthService.get_current_user),
     payadmit_service: PayAdmitService = Depends(),
 ):
     """
     Получает список всех платежей через API PayAdmit.
+
+    Параметры:
+    - limit (int): Количество элементов для возврата (по умолчанию 10).
+    - offset (int): Количество элементов для пропуска (по умолчанию 0).
+
     Возвращает:
     - Список платежей в формате JSON.
+
     Исключения:
     - HTTPException: если произошла ошибка при выполнении запроса к API.
     """
     try:
-        return await payadmit_service.get_payments(user)
+        return await payadmit_service.get_payments(limit=limit, offset=offset)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException as e:
         raise e
 
 
 @router.post("/payments")
 async def create_payment(
-    amount: int,
-    currency: str,
+    request: CreatePaymentRequest,
     user: User = Depends(AuthService.get_current_user),
     payadmit_service: PayAdmitService = Depends(),
 ):
@@ -42,15 +57,19 @@ async def create_payment(
     - HTTPException: если произошла ошибка при создании платежа.
     """
     try:
-        return await payadmit_service.create_payment(user, amount, currency)
+        return await payadmit_service.create_payment(
+            user,
+            request.amount,
+            request.currency,
+            request.customer,
+        )
     except HTTPException as e:
         raise e
 
 
 @router.post("/payouts")
 async def create_payout(
-    amount: int,
-    currency: str,
+    request: CreatePaymentRequest,
     user: User = Depends(AuthService.get_current_user),
     payadmit_service: PayAdmitService = Depends(),
 ):
@@ -65,34 +84,19 @@ async def create_payout(
     - HTTPException: если произошла ошибка при создании выплаты.
     """
     try:
-        return await payadmit_service.create_payout(user, amount, currency)
+        return await payadmit_service.create_payment(
+            user,
+            request.amount,
+            request.currency,
+            request.customer,
+        )
     except HTTPException as e:
         raise e
 
 
-async def create_refund(
-    payment_id: int,
-    user: User = Depends(AuthService.get_current_user),
-    payadmit_service: PayAdmitService = Depends(),
-):
-    """
-    Создает возврат средств для конкретного платежа через API PayAdmit.
-    Параметры:
-    - payment_id (int): идентификатор платежа для возврата.
-    Возвращает:
-    - Информацию о возврате средств.
-    Исключения:
-    - HTTPException: если произошла ошибка при создании возврата.
-    """
-    try:
-        return await payadmit_service.create_refund(user, payment_id)
-    except HTTPException as e:
-        raise e
-
-
-@router.post("/payouts/{payout_id}/confirm")
+@router.post("/payouts/confirm")
 async def confirm_payout(
-    payout_id: int,
+    request: PaymentConfirmationType,
     user: User = Depends(AuthService.get_current_user),
     payadmit_service: PayAdmitService = Depends(),
 ):
@@ -106,14 +110,37 @@ async def confirm_payout(
     - HTTPException: если произошла ошибка при подтверждении выплаты.
     """
     try:
-        return await payadmit_service.confirm_payout(user, payout_id)
+        return await payadmit_service.confirm_payout(request.payment_id)
     except HTTPException as e:
         raise e
 
 
-@router.get("/payments/{payment_id}/status")
+@router.post("/payments/refund")
+async def create_refund(
+    request: CreateRefundRequest,
+    user: User = Depends(AuthService.get_current_user),
+    payadmit_service: PayAdmitService = Depends(),
+):
+    """
+    Создает возврат средств для конкретного платежа через API PayAdmit.
+    Параметры:
+    - payment_id (int): идентификатор платежа для возврата.
+    Возвращает:
+    - Информацию о возврате средств.
+    Исключения:
+    - HTTPException: если произошла ошибка при создании возврата.
+    """
+    try:
+        return await payadmit_service.create_refund(
+            user, request.amount, request.currency, request.parentPaymentId
+        )
+    except HTTPException as e:
+        raise e
+
+
+@router.get("/payments/status")
 async def check_status(
-    payment_id: int,
+    payment_id: str,
     user: User = Depends(AuthService.get_current_user),
     payadmit_service: PayAdmitService = Depends(),
 ):
@@ -126,14 +153,16 @@ async def check_status(
     Исключения:
     - HTTPException: если произошла ошибка при проверке статуса.
     """
+    print(payment_id)
     try:
-        return await payadmit_service.check_status(user, payment_id)
+        return await payadmit_service.check_status(payment_id)
     except HTTPException as e:
         raise e
 
 
 @router.get("/operations")
 async def get_operations(
+    payment_id: str,
     user: User = Depends(AuthService.get_current_user),
     payadmit_service: PayAdmitService = Depends(),
 ):
@@ -145,7 +174,7 @@ async def get_operations(
     - HTTPException: если произошла ошибка при получении списка операций.
     """
     try:
-        return await payadmit_service.get_operations(user)
+        return await payadmit_service.get_operations(payment_id)
     except HTTPException as e:
         raise e
 

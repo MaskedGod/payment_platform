@@ -18,20 +18,35 @@ class PayAdmitService:
         """Заголовки с API-ключом для авторизации."""
         return {"Authorization": f"Bearer {self.api_key}"}
 
-    async def get_payments(self):
-        """Получает список платежей."""
+    async def get_payments(self, limit: int = 10, offset: int = 0):
+        """
+        Получает список платежей с учетом лимита и смещения.
+
+        Параметры:
+        - limit (int): Количество элементов для возврата (по умолчанию 10).
+        - offset (int): Количество элементов для пропуска (по умолчанию 0).
+
+        Возвращает:
+        - JSON-ответ от API.
+        """
+        if not (1 <= limit <= 1000):
+            raise ValueError("Параметр 'limit' должен быть в диапазоне [1, 1000].")
+        if offset < 0:
+            raise ValueError("Параметр 'offset' не может быть отрицательным.")
+
         url = f"{self.api_url}/payments"
         headers = await self._get_headers()
+        params = {
+            "limit": limit,
+            "offset": offset,
+        }
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, headers=headers)
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при получении платежей",
-                )
+            response = await client.get(url, params=params, headers=headers)
         return response.json()
 
-    async def create_payment(self, user: User, amount: int, currency: str):
+    async def create_payment(
+        self, user: User, amount: int, currency: str, customer: dict
+    ):
         """Создает новый платеж."""
         url = f"{self.api_url}/payments"
         headers = await self._get_headers()
@@ -40,91 +55,75 @@ class PayAdmitService:
             "amount": amount,
             "currency": currency,
             "customer": {
-                "firstName": user.first_name or "Unknown",
-                "lastName": user.last_name or "Unknown",
+                "firstName": customer["firstName"],
+                "lastName": customer["lastName"],
                 "email": user.email,
-                "phone": user.phone or "",
             },
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload)
-            if response.status_code != 201:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при создании платежа",
-                )
         return response.json()
 
-    async def create_payout(self, user: User, amount: int, currency: str):
+    async def create_payout(
+        self, user: User, amount: int, currency: str, customer: dict
+    ):
         """Создает выплату."""
-        url = f"{self.api_url}/payouts"
+        url = f"{self.api_url}/payments"
         headers = await self._get_headers()
         payload = {
             "paymentType": "WITHDRAWAL",
             "amount": amount,
             "currency": currency,
-            "customer": {"email": user.email},
+            "customer": {
+                "firstName": customer["firstName"],
+                "lastName": customer["lastName"],
+                "email": user.email,
+            },
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload)
-            if response.status_code != 201:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при создании выплаты",
-                )
         return response.json()
 
-    async def create_refund(self, payment_id: int):
-        """Создает возврат средств."""
-        url = f"{self.api_url}/refunds"
+    async def confirm_payout(self, payment_id: str):
+        """Подтверждает выплату."""
+        url = f"{self.api_url}payments/confirmPayout"
         headers = await self._get_headers()
-        payload = {"payment_id": payment_id}
+        payload = {"id": payment_id, "action": "PROCESS"}
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload)
-            if response.status_code != 201:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при создании возврата",
-                )
         return response.json()
 
-    async def confirm_payout(self, payout_id: int):
-        """Подтверждает выплату."""
-        url = f"{self.api_url}/payouts/{payout_id}/confirm"
+    async def create_refund(
+        self, user: User, amount: int, currency: str, parent_id: str
+    ):
+        print(amount, currency, parent_id)
+        """Создает выплату."""
+        url = f"{self.api_url}/payments"
         headers = await self._get_headers()
+        payload = {
+            "paymentType": "REFUND",
+            "amount": amount,
+            "currency": currency,
+            "parentPaymentId": parent_id,
+        }
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers)
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при подтверждении выплаты",
-                )
+            response = await client.post(url, headers=headers, json=payload)
         return response.json()
 
-    async def check_status(self, payment_id: int):
+    async def check_status(self, payment_id: str):
         """Проверяет статус платежа."""
-        url = f"{self.api_url}/payments/{payment_id}/status"
+        url = f"{self.api_url}/payments/{payment_id}"
         headers = await self._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при проверке статуса платежа",
-                )
         return response.json()
 
-    async def get_operations(self):
+    async def get_operations(self, payment_id: str):
         """Получает список всех операций."""
-        url = f"{self.api_url}/operations"
+        url = f"{self.api_url}/{payment_id}/operations"
         headers = await self._get_headers()
         async with httpx.AsyncClient() as client:
             response = await client.get(url, headers=headers)
-            if response.status_code != 200:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Ошибка при получении операций",
-                )
         return response.json()
 
     async def get_balance(self):
@@ -139,3 +138,146 @@ class PayAdmitService:
                     detail="Ошибка при получении баланса",
                 )
         return response.json()
+
+
+# class PayAdmitService:
+#     """
+#     Сервис для работы с API партнера PayAdmit.
+#     Использует API-ключ для аутентификации и выполняет операции с платежами, выплатами и списками.
+#     """
+
+#     def __init__(self):
+#         self.api_url = settings.PAYADMIT_API_URL
+#         self.api_key = settings.API_KEY
+
+#     async def _get_headers(self):
+#         """Заголовки с API-ключом для авторизации."""
+#         return {"Authorization": f"Bearer {self.api_key}"}
+
+#     async def get_payments(self):
+#         """Получает список платежей."""
+#         url = f"{self.api_url}/payments"
+#         headers = await self._get_headers()
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(url, headers=headers)
+#             if response.status_code != 200:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при получении платежей",
+#                 )
+#         return response.json()
+
+#     async def create_payment(self, user: User, amount: int, currency: str):
+#         """Создает новый платеж."""
+#         url = f"{self.api_url}/payments"
+#         headers = await self._get_headers()
+#         payload = {
+#             "paymentType": "DEPOSIT",
+#             "amount": amount,
+#             "currency": currency,
+#             "customer": {
+#                 "firstName": "Dodo",
+#                 "lastName": "Doe",
+#                 "email": user.email,
+#                 "phone": "",
+#             },
+#             # "customer": {
+#             #     "firstName": user.first_name or "Unknown",
+#             #     "lastName": user.last_name or "Unknown",
+#             #     "email": user.email,
+#             #     "phone": user.phone or "",
+#             # },
+#         }
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post(url, headers=headers, json=payload)
+#             if response.status_code != 201:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при создании платежа",
+#                 )
+#         return response.json()
+
+#     async def create_payout(self, user: User, amount: int, currency: str):
+#         """Создает выплату."""
+#         url = f"{self.api_url}/payments"
+#         headers = await self._get_headers()
+#         payload = {
+#             "paymentType": "WITHDRAWAL",
+#             "amount": amount,
+#             "currency": currency,
+#             "customer": {
+#                 "firstName": "Dodo",
+#                 "lastName": "Doe",
+#                 "email": user.email,
+#                 "phone": "",
+#             },
+#         }
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post(url, headers=headers, json=payload)
+#         return response.json()
+
+#     async def create_refund(self, payment_id: int):
+#         """Создает возврат средств."""
+#         url = f"{self.api_url}/payments"
+#         headers = await self._get_headers()
+#         payload = {"payment_id": payment_id}
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post(url, headers=headers, json=payload)
+#             if response.status_code != 201:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при создании возврата",
+#                 )
+#         return response.json()
+
+#     async def confirm_payout(self, payout_id: int):
+#         """Подтверждает выплату."""
+#         url = f"{self.api_url}/payouts/{payout_id}/confirm"
+#         headers = await self._get_headers()
+#         async with httpx.AsyncClient() as client:
+#             response = await client.post(url, headers=headers)
+#             if response.status_code != 200:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при подтверждении выплаты",
+#                 )
+#         return response.json()
+
+#     async def check_status(self, payment_id: int):
+#         """Проверяет статус платежа."""
+#         url = f"{self.api_url}/payments/{payment_id}/status"
+#         headers = await self._get_headers()
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(url, headers=headers)
+#             if response.status_code != 200:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при проверке статуса платежа",
+#                 )
+#         return response.json()
+
+#     async def get_operations(self):
+#         """Получает список всех операций."""
+#         url = f"{self.api_url}/operations"
+#         headers = await self._get_headers()
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(url, headers=headers)
+#             if response.status_code != 200:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при получении операций",
+#                 )
+#         return response.json()
+
+#     async def get_balance(self):
+#         """Получает текущий баланс."""
+#         url = f"{self.api_url}/balance"
+#         headers = await self._get_headers()
+#         async with httpx.AsyncClient() as client:
+#             response = await client.get(url, headers=headers)
+#             if response.status_code != 200:
+#                 raise HTTPException(
+#                     status_code=response.status_code,
+#                     detail="Ошибка при получении баланса",
+#                 )
+#         return response.json()

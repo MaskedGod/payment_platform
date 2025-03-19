@@ -1,5 +1,5 @@
 from sqlalchemy import Boolean, DateTime, Integer, String
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
 
 from app.db.database import Base
@@ -16,9 +16,9 @@ class User(Base):
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    payments: Mapped[list["Payment"]] = relationship(
-        "Payment", back_populates="user", cascade="all, delete-orphan"
-    )
+    # payments: Mapped[list["Payment"]] = relationship(
+    #     "Payment", back_populates="user", cascade="all, delete-orphan"
+    # )
 
     def __repr__(self):
         return f"<User {self.email}>"
