@@ -14,6 +14,8 @@ class AuthJWT(BaseModel):
 
 class Settings(BaseSettings):
     PAYADMIT_API_URL: str
+    PAYADMIT_SIGN_KEY: str
+    WEBHOOK_URL: str
     API_KEY: str
     SIGN_KEY: str
     DB_HOST: str
@@ -21,7 +23,6 @@ class Settings(BaseSettings):
     DB_USER: str
     DB_PASS: str
     DB_NAME: str
-    SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REDIS_HOST: str
     REDIS_PORT: int
@@ -38,3 +39,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+if __name__ == "__main__":
+    print(f"{settings.WEBHOOK_URL}/webhooks/payment_state")

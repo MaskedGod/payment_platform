@@ -3,13 +3,13 @@ from pydantic import BaseModel
 
 
 class CreatePaymentRequest(BaseModel):
-    amount: int
+    amount: float
     currency: str
     customer: dict
 
 
 class CreateRefundRequest(BaseModel):
-    amount: int
+    amount: float
     currency: str
     parentPaymentId: str
 

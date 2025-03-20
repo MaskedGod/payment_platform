@@ -45,7 +45,7 @@ class PayAdmitService:
         return response.json()
 
     async def create_payment(
-        self, user: User, amount: int, currency: str, customer: dict
+        self, user: User, amount: float, currency: str, customer: dict
     ):
         """Создает новый платеж."""
         url = f"{self.api_url}/payments"
@@ -59,9 +59,18 @@ class PayAdmitService:
                 "lastName": customer["lastName"],
                 "email": user.email,
             },
+            "webhookUrl": f"{settings.WEBHOOK_URL}/webhooks/payment_status",
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload)
+        if response.status_code == 200:
+            result = response.json()["result"]
+            return {
+                "payment_id": result.get("id"),
+                "status": result.get("state", "PENDING"),
+                "redirect_url": result.get("redirectUrl"),
+                "message": "Платеж успешно инициализирован. Пожалуйста, перейдите по ссылке для завершения платежа.",
+            }
         return response.json()
 
     async def create_payout(

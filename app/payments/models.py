@@ -1,4 +1,4 @@
-from sqlalchemy import DateTime, ForeignKey, Integer, String
+from sqlalchemy import DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timezone
 
@@ -11,7 +11,7 @@ class Payment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
     payment_type: Mapped[str] = mapped_column(String(20))
-    amount: Mapped[Integer] = mapped_column(Integer)
+    amount: Mapped[float] = mapped_column(Float)
     currency: Mapped[str] = mapped_column(String(3), default="EUR")
     status: Mapped[str] = mapped_column(String(20), default="PENDING")
     created_at: Mapped[datetime] = mapped_column(
