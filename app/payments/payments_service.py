@@ -88,6 +88,7 @@ class PayAdmitService:
                 "lastName": customer["lastName"],
                 "email": user.email,
             },
+            "webhookUrl": f"{settings.WEBHOOK_URL}/webhooks/payment_status",
         }
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload)
@@ -103,7 +104,7 @@ class PayAdmitService:
         return response.json()
 
     async def create_refund(
-        self, user: User, amount: int, currency: str, parent_id: str
+        self, user: User, amount: float, currency: str, parent_id: str
     ):
         print(amount, currency, parent_id)
         """Создает выплату."""

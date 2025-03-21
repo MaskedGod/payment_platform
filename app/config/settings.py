@@ -39,5 +39,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-if __name__ == "__main__":
-    print(f"{settings.WEBHOOK_URL}/webhooks/payment_state")
